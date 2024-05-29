@@ -55,17 +55,29 @@ impl GameState {
         todo!()
     }
 
-    pub fn get_nearby_cell_count(&self, cell: Cell) -> u8 {
-        for row in &self.cells {
-            for cell in row {
-
+    pub fn get_cell_by_location(&self, location: &Location) -> Option<Cell> {
+        // The application doesn't have pixels on negative indexes, 
+        // so asking to get one on a negative location is always unsuccessful, 
+        // since we map cells to pixels.
+        if location.x < 0 || location.y < 0 {
+            return None;
+        }
+        
+        if location.x as u32 > self.width || location.y as u32 > self.height {
+            return None;
+        }
+        
+        if let Some(cell_row) = self.cells.get(location.y as usize) {
+            if let Some(cell) = cell_row.get(location.x as usize) {
+                return Some(cell.to_owned());
             }
         }
-
-        todo!()
+        
+        None
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct Cell {
     pub is_alive: bool,
     pub location: Location,
@@ -127,6 +139,7 @@ mod test {
     #[test]
     fn get_surrounding_cell_locations_test() {
         let cell = Cell::new(true, Location::new(20, 55));
+        let cell_negative_pos = Cell::new(true, Location::new(-88, -1));
         
         let expected_cell: [Option<Location>; 8] = [
             Some(Location::new(19, 54)),
@@ -138,15 +151,24 @@ mod test {
             Some(Location::new(21, 55)),
             Some(Location::new(21, 56)),
         ];
+
+        let expected_cell_negative_pos: [Option<Location>; 8] = [
+            Some(Location::new(-89, -2)),
+            Some(Location::new(-89, -1)),
+            Some(Location::new(-89, 0)),
+            Some(Location::new(-88, -2)),
+            Some(Location::new(-88, 0)),
+            Some(Location::new(-87, -2)),
+            Some(Location::new(-87, -1)),
+            Some(Location::new(-87, 0)),
+        ];
         
         
-        // Act
         let cell_res = cell.get_surrounding_cell_locations();
+        let cell_negative_pos_res = cell_negative_pos.get_surrounding_cell_locations();
         
         
-        // Assert
         assert_eq!(cell_res, expected_cell);
-        
-        // todo!()
+        assert_eq!(cell_negative_pos_res, expected_cell_negative_pos);
     }
 }
