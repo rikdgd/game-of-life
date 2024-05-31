@@ -55,10 +55,24 @@ impl GameState {
         let mut updated_state: Vec<Vec<Cell>> = Vec::new();
         
         for cell_row in &self.cells {
+            let mut updated_cell_row: Vec<Cell> = Vec::new();
             for cell in cell_row {
+                let mut updated_cell = cell.clone();
+                let alive_count = self.get_surrounding_living_cells(&updated_cell.location);
                 
+                if alive_count <= 1 || (4..=8).contains(&alive_count) {
+                    updated_cell.is_alive = false;
+                } else if alive_count == 3 {
+                    updated_cell.is_alive = true;
+                } else if alive_count >= 9 {
+                    panic!("There shouldn't be more than 8 surrounding cells to begin with...");
+                }
+                
+                updated_cell_row.push(updated_cell);
             }
+            updated_state.push(updated_cell_row);
         }
+        self.cells = updated_state;
     }
 
     pub fn get_cell_by_location(&self, location: &Location) -> Option<&Cell> {
