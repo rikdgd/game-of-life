@@ -4,29 +4,9 @@ use rand::{thread_rng, Rng};
 pub struct GameState {
     width: u32,
     height: u32,
-    pub cells: Vec<Vec<Cell>>,
+    cells: Vec<Vec<Cell>>,
 }
 impl GameState {
-    pub fn new_blank(width: u32, height: u32) -> Self {
-        let mut cells = Vec::new();
-        
-        for y in 0..height as i32 {
-            let mut cell_row: Vec<Cell> = Vec::new();
-            for x in 0..width as i32 {
-                cell_row.push(
-                    Cell::new(false, Location::new(x, y))
-                );
-            }
-            cells.push(cell_row);
-        }
-        
-        Self {
-            width,
-            height,
-            cells,
-        }
-    }
-    
     pub fn new_rand_filled(width: u32, height: u32, chance_alive: f64) -> Result<Self, String> {
         if !(0.0..=1.0).contains(&chance_alive) {
             return Err("Please enter a chance from 0.0 to 1.0 (included)".to_string());
@@ -49,6 +29,10 @@ impl GameState {
             width,
             height,
         })
+    }
+    
+    pub fn get_cells(&self) -> &Vec<Vec<Cell>> {
+        &self.cells
     }
 
     pub fn update(&mut self) {
@@ -127,12 +111,22 @@ impl GameState {
         let mut alive_counter: u8 = 0;
         
         for location in surrounding_locations {
-            let cell = self.get_cell_by_location(&location.expect("Faulty location.")).unwrap();
+            let location = &location.expect("Faulty location.");
+            let cell = match self.get_cell_by_location(location) {
+                Some(cell) => {
+                    cell.clone()
+                },
+                None => {
+                    // If the cell has a location outside the field, assume it's dead.
+                    Cell::new(false, *location)
+                },
+            };
+                
             if cell.is_alive {
                 alive_counter += 1;
             }
         }
-
+        
         alive_counter
     }
 }
