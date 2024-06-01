@@ -1,4 +1,5 @@
 use rand::{thread_rng, Rng};
+use rayon::prelude::*;
 
 
 pub struct GameState {
@@ -36,27 +37,31 @@ impl GameState {
     }
 
     pub fn update(&mut self) {
-        let mut updated_state: Vec<Vec<Cell>> = Vec::new();
-        
-        for cell_row in &self.cells {
-            let mut updated_cell_row: Vec<Cell> = Vec::new();
-            for cell in cell_row {
-                let mut updated_cell = cell.clone();
-                let alive_count = self.get_surrounding_living_cells(&updated_cell.location);
-                
-                if alive_count <= 1 || (4..=8).contains(&alive_count) {
-                    updated_cell.is_alive = false;
-                } else if alive_count == 3 {
-                    updated_cell.is_alive = true;
-                } else if alive_count >= 9 {
-                    panic!("There shouldn't be more than 8 surrounding cells to begin with...");
-                }
-                
-                updated_cell_row.push(updated_cell);
-            }
-            updated_state.push(updated_cell_row);
+        let updated_cells: Vec<Vec<Cell>> = self.cells
+            .par_iter()
+            .map(|row| {
+                row.par_iter()
+                    .map(|cell| self.update_cell(cell))
+                    .collect()
+            })
+            .collect();
+
+        self.cells = updated_cells;
+    }
+    
+    fn update_cell(&self, cell: &Cell) -> Cell {
+        let mut updated_cell = cell.clone();
+        let alive_count = self.get_surrounding_living_cells(&updated_cell.location);
+
+        if alive_count <= 1 || (4..=8).contains(&alive_count) {
+            updated_cell.is_alive = false;
+        } else if alive_count == 3 {
+            updated_cell.is_alive = true;
+        } else if alive_count >= 9 {
+            panic!("There shouldn't be more than 8 surrounding cells to begin with...");
         }
-        self.cells = updated_state;
+
+        updated_cell
     }
 
     pub fn get_cell_by_location(&self, location: &Location) -> Option<&Cell> {
