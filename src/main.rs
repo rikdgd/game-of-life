@@ -1,4 +1,5 @@
 mod game_state;
+mod utils;
 
 use macroquad::miniquad::window::set_window_size;
 use macroquad::prelude::*;
@@ -15,6 +16,12 @@ async fn main() {
     set_window_size(config.width, config.height);
     let mut state = GameState::new_rand_filled(config.width, config.height, config.chance_alive)
         .expect("Failed to create game state");
+    
+    let state_str = state.to_char_string();
+    println!("{state_str}");
+    
+    let test = GameState::from_state_string(state_str).unwrap();
+    println!("{:?}", test.get_cells());
     
     loop {
         state.update();

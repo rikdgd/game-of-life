@@ -1,5 +1,11 @@
+use std::io::ErrorKind;
 use rand::{thread_rng, Rng};
 use rayon::prelude::*;
+use crate::utils;
+
+
+const ALIVE_CHAR: char = 'O';
+const DEAD_CHAR: char = '.';
 
 
 pub struct GameState {
@@ -8,6 +14,25 @@ pub struct GameState {
     cells: Vec<Vec<Cell>>,
 }
 impl GameState {
+    pub fn new_blank(width: u32, height: u32) -> Self {
+        let mut cells = Vec::new();
+        for y in 0..height as i32 {
+            let mut cell_row: Vec<Cell> = Vec::new();
+            for x in 0..width as i32 {
+                cell_row.push(
+                    Cell::new(false, Location::new(x, y))
+                );
+            }
+            cells.push(cell_row);
+        }
+
+        Self {
+            cells,
+            width,
+            height,
+        }
+    }
+
     pub fn new_rand_filled(width: u32, height: u32, chance_alive: f64) -> Result<Self, String> {
         if !(0.0..=1.0).contains(&chance_alive) {
             return Err("Please enter a chance from 0.0 to 1.0 (included)".to_string());
@@ -30,6 +55,84 @@ impl GameState {
             width,
             height,
         })
+    }
+
+
+    
+    pub fn from_state_string(char_string: String) -> std::io::Result<Self> {
+        let mut cells: Vec<Vec<Cell>> = Vec::new();
+        
+        let str_rows: Vec<&str> = char_string.split('\n').collect();
+        let mut height = str_rows.len();
+        let width = utils::count_chars_in_str(str_rows[0], ',') + 1;
+        
+        for (y, row) in str_rows.iter().enumerate() {
+            if row.is_empty() {
+                height -= 1;
+                continue;
+            }
+            
+            let mut cell_row: Vec<Cell> = Vec::new();
+            
+            let mut current_x_pos: u32 = 0;
+            for char in row.chars() {
+                let cell = match char {
+                    ALIVE_CHAR => {
+                        Some(Cell {
+                            is_alive: true,
+                            location: Location::new(current_x_pos as i32, y as i32),
+                        })
+                    }, 
+                    DEAD_CHAR => {
+                        Some(Cell {
+                            is_alive: false,
+                            location: Location::new(current_x_pos as i32, y as i32),
+                        })
+                    },
+                    _ => {
+                        None
+                    }
+                };
+                
+                if let Some(cell) = cell {
+                    cell_row.push(cell);
+                    current_x_pos += 1;
+                }
+            }
+            
+            if cell_row.len() != width {
+                return Err(std::io::Error::new(
+                    ErrorKind::InvalidInput, 
+                    "The given state string was incorrect"
+                ))
+            }
+            
+            cells.push(cell_row);
+        }
+        
+        Ok(Self {
+            cells,
+            width: width as u32,
+            height: height as u32,
+        })
+    }
+    
+    pub fn to_char_string(&self) -> String {
+        let mut char_string = String::new();
+        
+        for row in &self.cells {
+            let mut char_row: Vec<char> = Vec::new();
+            for cell in row {
+                let cell_char = match cell.is_alive {
+                    true => ALIVE_CHAR,
+                    false => DEAD_CHAR,
+                };
+                char_row.push(cell_char);
+            }
+            char_string.push_str(&format!("{:?}\n", char_row));
+        }
+        
+        char_string
     }
     
     pub fn get_cells(&self) -> &Vec<Vec<Cell>> {
@@ -134,9 +237,13 @@ impl GameState {
         
         alive_counter
     }
+    pub fn set_cells(&mut self, cells: Vec<Vec<Cell>>) {
+        // TODO: adjust width and height
+        self.cells = cells;
+    }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Cell {
     pub is_alive: bool,
     pub location: Location,
@@ -147,6 +254,20 @@ impl Cell {
         Self {
             is_alive,
             location,
+        }
+    }
+    
+    pub fn from_char(char: char, location: Location) -> Option<Self> {
+        match char {
+            ALIVE_CHAR => {
+                Some(Self { is_alive: true, location })
+            },
+            DEAD_CHAR => {
+                Some(Self { is_alive: false, location })
+            }
+            _ => {
+                None
+            }
         }
     }
 }
@@ -166,7 +287,7 @@ impl Location {
 
 #[cfg(test)]
 mod test {
-    use crate::game_state::{GameState, Location};
+    use crate::game_state::{Cell, GameState, Location};
 
     #[test]
     fn get_surrounding_cell_locations_test() {
@@ -202,5 +323,70 @@ mod test {
         
         assert_eq!(cell_res, expected_cell);
         assert_eq!(cell_negative_pos_res, expected_cell_negative_pos);
+    }
+
+    #[test]
+    fn from_state_string_test() {
+        let state_string = r#"['O', '.', '.']
+['O', 'O', 'O']
+['O', '.', 'O']
+"#;
+        
+        let expected_cells = vec![
+            vec![ // row 1
+                Cell::new(true, Location::new(0, 0)), 
+                Cell::new(false, Location::new(1, 0)), 
+                Cell::new(false, Location::new(2, 0))
+            ],
+            vec![ // row 2
+                Cell::new(true, Location::new(0, 1)),
+                Cell::new(true, Location::new(1, 1)),
+                Cell::new(true, Location::new(2, 1))
+            ],
+            vec![ // row 3
+                Cell::new(true, Location::new(0, 2)),
+                Cell::new(false, Location::new(1, 2)),
+                Cell::new(true, Location::new(2, 2))
+            ],
+        ];
+        let mut expected_state = GameState::new_blank(3, 3);
+        expected_state.set_cells(expected_cells);
+        
+        let result_state = GameState::from_state_string(state_string.to_string()).unwrap();
+        
+        assert_eq!(result_state.cells, expected_state.cells);
+    }
+
+    #[test]
+    fn to_state_string_test() {
+        let expected_state_string = r#"['O', '.', '.']
+['O', 'O', 'O']
+['O', '.', 'O']
+"#;
+
+        let cells = vec![
+            vec![ // row 1
+                  Cell::new(true, Location::new(0, 0)),
+                  Cell::new(false, Location::new(1, 0)),
+                  Cell::new(false, Location::new(2, 0))
+            ],
+            vec![ // row 2
+                  Cell::new(true, Location::new(0, 1)),
+                  Cell::new(true, Location::new(1, 1)),
+                  Cell::new(true, Location::new(2, 1))
+            ],
+            vec![ // row 3
+                  Cell::new(true, Location::new(0, 2)),
+                  Cell::new(false, Location::new(1, 2)),
+                  Cell::new(true, Location::new(2, 2))
+            ],
+        ];
+        let mut state = GameState::new_blank(3, 3);
+        state.set_cells(cells);
+        
+        
+        let result_state_string = state.to_char_string();
+
+        assert_eq!(result_state_string, expected_state_string);
     }
 }
