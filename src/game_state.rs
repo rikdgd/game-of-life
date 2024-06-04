@@ -117,7 +117,7 @@ impl GameState {
         })
     }
     
-    pub fn to_char_string(&self) -> String {
+    pub fn to_state_string(&self) -> String {
         let mut char_string = String::new();
         
         for row in &self.cells {
@@ -385,7 +385,7 @@ mod test {
         state.set_cells(cells);
         
         
-        let result_state_string = state.to_char_string();
+        let result_state_string = state.to_state_string();
 
         assert_eq!(result_state_string, expected_state_string);
     }
