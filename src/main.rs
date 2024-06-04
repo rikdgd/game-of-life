@@ -1,6 +1,9 @@
 mod game_state;
 mod utils;
+mod file_managment;
 
+use std::env;
+use std::io::ErrorKind;
 use macroquad::miniquad::window::set_window_size;
 use macroquad::prelude::*;
 use crate::game_state::GameState;
@@ -48,21 +51,21 @@ struct Config {
 }
 impl Config {
     #[allow(clippy::ptr_arg)]
-    pub fn from_args(args: &Vec<String>) -> Self {
+    pub fn from_args(args: &Vec<String>) -> std::io::Result<Self> {
         match args.len() {
             4 => {
                 let width = args[1].parse::<u32>().expect("Invalid width provided");
                 let height = args[2].parse::<u32>().expect("Invalid height provided");
                 let chance_alive = args[3].parse::<f64>().expect("Invalid chance_alive provided");
 
-                Config {
+                Ok(Self {
                     width,
                     height,
                     chance_alive,
-                }
+                })
             },
             _ => {
-                panic!("Invalid amount of arguments provided.");
+                Err(std::io::Error::new(ErrorKind::InvalidInput, "Could not generate a config with the given input."))
             }
         }
     }
