@@ -14,6 +14,7 @@ pub struct GameState {
     cells: Vec<Vec<Cell>>,
 }
 impl GameState {
+    #[allow(unused)]
     pub fn new_blank(width: u32, height: u32) -> Self {
         let mut cells = Vec::new();
         for y in 0..height as i32 {
@@ -256,7 +257,7 @@ impl Cell {
             location,
         }
     }
-    
+
     pub fn from_char(char: char, location: Location) -> Option<Self> {
         match char {
             ALIVE_CHAR => {
@@ -331,11 +332,11 @@ mod test {
 ['O', 'O', 'O']
 ['O', '.', 'O']
 "#;
-        
+
         let expected_cells = vec![
             vec![ // row 1
-                Cell::new(true, Location::new(0, 0)), 
-                Cell::new(false, Location::new(1, 0)), 
+                Cell::new(true, Location::new(0, 0)),
+                Cell::new(false, Location::new(1, 0)),
                 Cell::new(false, Location::new(2, 0))
             ],
             vec![ // row 2
@@ -351,9 +352,9 @@ mod test {
         ];
         let mut expected_state = GameState::new_blank(3, 3);
         expected_state.set_cells(expected_cells);
-        
+
         let result_state = GameState::from_state_string(state_string.to_string()).unwrap();
-        
+
         assert_eq!(result_state.cells, expected_state.cells);
     }
 
@@ -383,8 +384,8 @@ mod test {
         ];
         let mut state = GameState::new_blank(3, 3);
         state.set_cells(cells);
-        
-        
+
+
         let result_state_string = state.to_char_string();
 
         assert_eq!(result_state_string, expected_state_string);

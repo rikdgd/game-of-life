@@ -1,27 +1,38 @@
 mod game_state;
 mod utils;
 
+use std::env;
+use std::fs::OpenOptions;
+use std::io::{Error, ErrorKind, Read, Write};
 use macroquad::miniquad::window::set_window_size;
 use macroquad::prelude::*;
 use crate::game_state::GameState;
-use std::env;
 
 
+const STATE_FILE_PATH: &str = "state.txt";
 
 
 #[macroquad::main("Conway's Game of Life")]
 async fn main() {
-    let config = Config::from_args(&env::args().collect());
-
-    set_window_size(config.width, config.height);
-    let mut state = GameState::new_rand_filled(config.width, config.height, config.chance_alive)
-        .expect("Failed to create game state");
+    let mut state: GameState;
     
-    let state_str = state.to_char_string();
-    println!("{state_str}");
+    let state_file = OpenOptions::new()
+        .read(true)
+        .open(STATE_FILE_PATH);
     
-    let test = GameState::from_state_string(state_str).unwrap();
-    println!("{:?}", test.get_cells());
+    if let Ok(mut state_file) = state_file {
+        let mut content_buffer = String::new();
+         state_file.read_to_string(&mut content_buffer).expect("The state stored in 'state.txt' is invalid.");
+        
+        state = GameState::from_state_string(content_buffer).unwrap();
+    } else {
+        let config = Config::from_args(&env::args().collect()).unwrap();
+        set_window_size(config.width, config.height);
+        
+        state = GameState::new_rand_filled(config.width, config.height, config.chance_alive)
+            .expect("Failed to create game state");
+    }
+    
     
     loop {
         state.update();
@@ -48,21 +59,24 @@ struct Config {
 }
 impl Config {
     #[allow(clippy::ptr_arg)]
-    pub fn from_args(args: &Vec<String>) -> Self {
+    pub fn from_args(args: &Vec<String>) -> std::io::Result<Self> {
         match args.len() {
             4 => {
                 let width = args[1].parse::<u32>().expect("Invalid width provided");
                 let height = args[2].parse::<u32>().expect("Invalid height provided");
                 let chance_alive = args[3].parse::<f64>().expect("Invalid chance_alive provided");
 
-                Config {
-                    width,
-                    height,
-                    chance_alive,
-                }
+                Ok(Config {
+                        width,
+                        height,
+                        chance_alive,
+                })
             },
             _ => {
-                panic!("Invalid amount of arguments provided.");
+                Err(Error::new(
+                    ErrorKind::InvalidInput, 
+                    "Could not create a run configuration from the user input."
+                ))
             }
         }
     }
