@@ -1,5 +1,6 @@
 mod game_state;
 mod utils;
+mod file_managment;
 
 use std::env;
 use std::fs::OpenOptions;
@@ -14,24 +15,14 @@ const STATE_FILE_PATH: &str = "state.txt";
 
 #[macroquad::main("Conway's Game of Life")]
 async fn main() {
-    let mut state: GameState;
+    let config = Config::from_args(&env::args().collect()).unwrap();
+
+    set_window_size(config.width, config.height);
+    let mut state = GameState::new_rand_filled(config.width, config.height, config.chance_alive)
+        .expect("Failed to create game state");
     
-    let state_file = OpenOptions::new()
-        .read(true)
-        .open(STATE_FILE_PATH);
-    
-    if let Ok(mut state_file) = state_file {
-        let mut content_buffer = String::new();
-         state_file.read_to_string(&mut content_buffer).expect("The state stored in 'state.txt' is invalid.");
-        
-        state = GameState::from_state_string(content_buffer).unwrap();
-    } else {
-        let config = Config::from_args(&env::args().collect()).unwrap();
-        set_window_size(config.width, config.height);
-        
-        state = GameState::new_rand_filled(config.width, config.height, config.chance_alive)
-            .expect("Failed to create game state");
-    }
+    let state_str = state.to_state_string();
+    println!("{state_str}");
     
     
     loop {
@@ -66,7 +57,7 @@ impl Config {
                 let height = args[2].parse::<u32>().expect("Invalid height provided");
                 let chance_alive = args[3].parse::<f64>().expect("Invalid chance_alive provided");
 
-                Ok(Config {
+                Ok(Self {
                         width,
                         height,
                         chance_alive,
