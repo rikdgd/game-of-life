@@ -1,28 +1,43 @@
 mod game_state;
 mod utils;
-mod file_managment;
+mod file_management;
 
 use std::env;
-use std::fs::OpenOptions;
-use std::io::{Error, ErrorKind, Read, Write};
+use std::io::{Error, ErrorKind};
 use macroquad::miniquad::window::set_window_size;
 use macroquad::prelude::*;
 use crate::game_state::GameState;
 
 
-const STATE_FILE_PATH: &str = "state.txt";
-
 
 #[macroquad::main("Conway's Game of Life")]
 async fn main() {
-    let config = Config::from_args(&env::args().collect()).unwrap();
-
-    set_window_size(config.width, config.height);
-    let mut state = GameState::new_rand_filled(config.width, config.height, config.chance_alive)
-        .expect("Failed to create game state");
+    let mut state: GameState;
     
-    let state_str = state.to_state_string();
-    println!("{state_str}");
+    // First check if the user provided any input, if so run that Config.
+    if let Ok(config) = Config::from_args(&env::args().collect()) {
+        set_window_size(config.width, config.height);
+        state = GameState::new_rand_filled(config.width, config.height, config.chance_alive)
+            .expect("Failed to create game state");
+        
+        if config.save_state {
+            file_management::store_state(&state.to_state_string())
+                .expect("Failed to store the game state to disk.");
+        }
+        
+    // If no Config was provided via environment arguments, check if a state file exists and load it.
+    } else if let Ok(file_state) = file_management::load_state() {
+        state = file_state;
+        set_window_size(state.width(), state.height());
+        
+    // If no correct input was provided, run a default configuration.    
+    } else {
+        let dimension = 500;
+        set_window_size(dimension, dimension);
+        state = GameState::new_rand_filled(dimension, dimension, 0.5)
+            .expect("Failed to create game state");
+    }
+    
     
     
     loop {
@@ -43,10 +58,13 @@ async fn main() {
     }
 }
 
+
+
 struct Config {
     pub width: u32,
     pub height: u32,
     pub chance_alive: f64,
+    pub save_state: bool,
 }
 impl Config {
     #[allow(clippy::ptr_arg)]
@@ -61,7 +79,16 @@ impl Config {
                         width,
                         height,
                         chance_alive,
+                        save_state: false,
                 })
+            },
+            5 => {
+                let width = args[1].parse::<u32>().expect("Invalid width provided");
+                let height = args[2].parse::<u32>().expect("Invalid height provided");
+                let chance_alive = args[3].parse::<f64>().expect("Invalid chance_alive provided");
+                let save_state = args[4].parse::<bool>().expect("Not clear if state should be saved.");
+
+                Ok(Self { width, height, chance_alive, save_state, })
             },
             _ => {
                 Err(Error::new(

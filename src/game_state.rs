@@ -242,6 +242,12 @@ impl GameState {
         // TODO: adjust width and height
         self.cells = cells;
     }
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+    pub fn height(&self) -> u32 {
+        self.height
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
