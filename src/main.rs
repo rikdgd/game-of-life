@@ -7,20 +7,19 @@ use std::io::ErrorKind;
 use macroquad::miniquad::window::set_window_size;
 use macroquad::prelude::*;
 use crate::game_state::GameState;
-use std::env;
 
 
 
 
 #[macroquad::main("Conway's Game of Life")]
 async fn main() {
-    let config = Config::from_args(&env::args().collect());
+    let config = Config::from_args(&env::args().collect()).unwrap();
 
     set_window_size(config.width, config.height);
     let mut state = GameState::new_rand_filled(config.width, config.height, config.chance_alive)
         .expect("Failed to create game state");
     
-    let state_str = state.to_char_string();
+    let state_str = state.to_state_string();
     println!("{state_str}");
     
     let test = GameState::from_state_string(state_str).unwrap();
