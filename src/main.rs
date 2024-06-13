@@ -13,9 +13,17 @@ use crate::game_state::GameState;
 #[macroquad::main("Conway's Game of Life")]
 async fn main() {
     let mut state: GameState;
-    
-    // First check if the user provided any input, if so run that Config.
-    if let Ok(config) = Config::from_args(&env::args().collect()) {
+    let args: &Vec<String> = &env::args().collect();
+
+    // Check if the user want to generate a new blank state file. 
+    if args.len() >= 4 && args[1] == "new-blank" {
+        let width = args[2].parse::<u32>().expect("Could not get width from user input.");
+        let height = args[3].parse::<u32>().expect("Could not get height from user input.");
+        state = GameState::new_blank(width, height);
+        file_management::store_state(&state.to_state_string()).expect("Failed to store newly generated state file.");
+        
+    // Check if the user provided any input, if so run that Config.
+    } else if let Ok(config) = Config::from_args(args) {
         set_window_size(config.width, config.height);
         state = GameState::new_rand_filled(config.width, config.height, config.chance_alive)
             .expect("Failed to create game state");
