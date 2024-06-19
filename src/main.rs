@@ -1,6 +1,7 @@
 mod game_state;
 mod utils;
 mod file_management;
+mod image_state;
 
 use std::env;
 use std::io::{Error, ErrorKind};
