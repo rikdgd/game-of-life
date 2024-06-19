@@ -189,6 +189,37 @@ impl GameState {
         None
     }
 
+    pub fn set_cell_by_location(&mut self, location: &Location, new_cell: Cell) -> std::io::Result<()> {
+        // The application doesn't have pixels on negative indexes, 
+        // so asking to get one on a negative location is always unsuccessful, 
+        // since we map cells to pixels.
+        if location.x < 0 || location.y < 0 {
+            return Err(std::io::Error::new(
+                ErrorKind::InvalidInput, 
+                "Tried to set pixel on negative index."
+            ));
+        }
+
+        if location.x as u32 > self.width || location.y as u32 > self.height {
+            return Err(std::io::Error::new(
+                ErrorKind::InvalidInput,
+                "Tried to set pixel on outside of image range."
+            ));
+        }
+
+        if let Some(cell_row) = self.cells.get_mut(location.y as usize) {
+            if let Some(cell) = cell_row.get_mut(location.x as usize) {
+                *cell = new_cell;
+                return Ok(());
+            }
+        }
+
+        Err(std::io::Error::new(
+            ErrorKind::InvalidInput,
+            "Something went wrong when trying to set the pixel with the given input."
+        ))
+    }
+
     fn get_surrounding_locations(location: &Location) -> [Option<Location>; 8] {
         let mut location_list = Vec::new();
         for x_pos_diff in -1..=1 {
