@@ -20,9 +20,8 @@ async fn main() {
     if args.len() >= 4 && args[1] == "new-blank" {
         let width = args[2].parse::<u32>().expect("Could not get width from user input.");
         let height = args[3].parse::<u32>().expect("Could not get height from user input.");
+        image_state::generate_blank_state_image(width, height).expect("Failed to generate state image.");
         state = GameState::new_blank(width, height);
-        file_management::store_state(&state.to_state_string()).expect("Failed to store newly generated state file.");
-        
     // Check if the user provided any input, if so run that Config.
     } else if let Ok(config) = Config::from_args(args) {
         set_window_size(config.width, config.height);
@@ -34,9 +33,9 @@ async fn main() {
                 .expect("Failed to store the game state to disk.");
         }
         
-    // If no Config was provided via environment arguments, check if a state file exists and load it.
-    } else if let Ok(file_state) = file_management::load_state() {
-        state = file_state;
+    // If no Config was provided via environment arguments, check if a state image exists and load it.
+    } else if let Ok(image_state) = image_state::load_state_from_image() {
+        state = image_state;
         set_window_size(state.width(), state.height());
         
     // If no correct input was provided, run a default configuration.    

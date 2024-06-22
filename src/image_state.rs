@@ -5,18 +5,22 @@ use crate::game_state::{Cell, GameState};
 use crate::game_state::Location;
 
 
+
+const STATE_IMAGE_PATH: &str = "./state-image.png";
+
+
 pub fn generate_blank_state_image(width: u32, height: u32) -> Result<(), Box<dyn Error>> {
     let mut image: RgbImage = ImageBuffer::new(width, height);
     for (_, _, pixel) in image.enumerate_pixels_mut() {
-        *pixel = Rgb([0, 0, 0]);
+        *pixel = Rgb([255, 255, 255]);
     }
 
-    image.save("./state-image.png")?;
+    image.save(STATE_IMAGE_PATH)?;
     Ok(())
 }
 
-pub fn load_state_from_image(image_path: &str) -> Result<GameState, Box<dyn Error>> {
-    let image = ImageReader::open(image_path)?.decode()?;
+pub fn load_state_from_image() -> Result<GameState, Box<dyn Error>> {
+    let image = ImageReader::open(STATE_IMAGE_PATH)?.decode()?;
     let mut state = GameState::new_blank(image.width(), image.height());
 
     let pixel_enumerator = image
@@ -24,7 +28,7 @@ pub fn load_state_from_image(image_path: &str) -> Result<GameState, Box<dyn Erro
         .enumerate_pixels();
     for (x, y, pixel) in pixel_enumerator
     {
-        if pixel.to_rgb() == Rgb([255, 255, 255]) {
+        if pixel.to_rgb() == Rgb([0, 0, 0]) {
             let location = Location::new(x as i32, y as i32);
             state.set_cell_by_location(&location, Cell::new(true, location))?;
         }
